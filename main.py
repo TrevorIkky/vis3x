@@ -76,16 +76,16 @@ class DinoLoss(nn.Module):
              (np.ones(epochs - warmup_teacher_epochs) * teacher_temp)])
 
     def forward(self, student_output, teacher_output, epoch):
-        student_output = student_output / self.student_temp
-        student_output = student_output.chunk(self.n_crops)
+        student_out = student_output / self.student_temp
+        student_out = student_out.chunk(self.n_crops)
 
-        teacher_output = (teacher_output - self.center) / self.teacher_temp_schedule[epoch]
-        teacher_output = F.softmax(teacher_output, dim=-1).detach().chunk(2)
+        teacher_out = (teacher_output - self.center) / self.teacher_temp_schedule[epoch]
+        teacher_out = F.softmax(teacher_out, dim=-1).detach().chunk(2)
 
         total_loss = 0
         n_loss_terms = 0
-        for t_idx, t in enumerate(teacher_output):
-            for s_idx, s in enumerate(student_output):
+        for t_idx, t in enumerate(teacher_out):
+            for s_idx, s in enumerate(student_out):
                 if t_idx == s_idx:
                     continue
                 loss = torch.mean(-t * F.log_softmax(s, dim=-1), dim=-1)
