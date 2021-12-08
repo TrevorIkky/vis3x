@@ -80,7 +80,7 @@ class DinoLoss(nn.Module):
         student_output = student_output.chunk(self.n_crops)
 
         teacher_output = (teacher_output - self.center) / self.teacher_temp_schedule[epoch]
-        teacher_output = F.softmax(teacher_output, dim=-1).chunk(2)
+        teacher_output = F.softmax(teacher_output, dim=-1).detach().chunk(2)
 
         total_loss = 0
         n_loss_terms = 0
