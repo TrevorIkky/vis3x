@@ -146,6 +146,8 @@ def visualize(args):
         cumval = torch.cumsum(val, dim=1)
         th_attn = cumval > (1 - args.threshold)
         # Not sure what below 3 lines are doing
+        # sort the indices of where those values used to be before sorting
+
         idx2 = torch.argsort(idx)
         for head in range(num_heads):
             th_attn[head] = th_attn[head][idx2[head]]

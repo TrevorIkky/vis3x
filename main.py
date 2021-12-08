@@ -12,7 +12,7 @@ from PIL import Image
 from torch.utils.data import DataLoader, DistributedSampler
 from torchvision import transforms as T
 from tqdm import tqdm
-
+from torchvision.transforms import InterpolationMode
 import utils
 import vision_transformers as vit
 from dataset import Vis3xDataset
@@ -32,14 +32,14 @@ class DataAugmentationsDINO(object):
         ])
 
         self.global_transform1 = T.Compose([
-            T.RandomResizedCrop(224, global_image_scale, interpolation=Image.BICUBIC),
+            T.RandomResizedCrop(224, global_image_scale, interpolation=InterpolationMode.BICUBIC),
             flip_and_color_jitter,
             utils.GaussianBlur(1.0),
             normalize
         ])
 
         self.global_transform2 = T.Compose([
-            T.RandomResizedCrop(224, global_image_scale, interpolation=Image.BICUBIC),
+            T.RandomResizedCrop(224, global_image_scale, interpolation=InterpolationMode.BICUBIC),
             flip_and_color_jitter,
             utils.GaussianBlur(p=0.1),
             utils.Solarize(p=0.2),
@@ -49,7 +49,7 @@ class DataAugmentationsDINO(object):
         self.num_local_crops = num_local_crops
 
         self.local_crops_transform = T.Compose([
-            T.RandomResizedCrop(96, local_image_scale, interpolation=Image.BICUBIC),
+            T.RandomResizedCrop(96, local_image_scale, interpolation=InterpolationMode.BICUBIC),
             flip_and_color_jitter,
             utils.GaussianBlur(p=0.5),
             normalize
