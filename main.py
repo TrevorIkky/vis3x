@@ -88,8 +88,8 @@ class DinoLoss(nn.Module):
             for s_idx, s in enumerate(student_out):
                 if t_idx == s_idx:
                     continue
-                loss = torch.mean(-t * F.log_softmax(s, dim=-1), dim=-1)
-                total_loss += loss
+                loss = torch.sum(-t * F.log_softmax(s, dim=-1), dim=-1)
+                total_loss += loss.mean()
                 n_loss_terms += 1
         total_loss /= n_loss_terms
         self.update_center(teacher_output)
