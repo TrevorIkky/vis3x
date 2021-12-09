@@ -108,8 +108,8 @@ class Block(nn.Module):
 
 
 class VisionTransformer(nn.Module):
-    def __init__(self, img_size=224, n_classes=3, patch_size=16, in_channels=3, embed_dim=768,
-                 n_blocks=3, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., drop=0.,
+    def __init__(self, img_size=224, n_classes=0, patch_size=16, in_channels=3, embed_dim=768,
+                 n_blocks=12, num_heads=12, qkv_bias=False, qk_scale=None, attn_drop=0., drop=0.,
                  drop_path_rate=0., mlp_ratio=4, norm_layer=nn.LayerNorm, activation=nn.GELU, **kwargs):
         super(VisionTransformer, self).__init__()
         self.embed_dim = embed_dim
