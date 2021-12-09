@@ -118,9 +118,9 @@ def visualize(args):
 
     # Apply transform to image
     transforms = T.Compose([
-        T.Resize(args.image_size),
+        T.Resize((args.image_size, args.image_size)),
         T.ToTensor(),
-        T.Normalize(mean=(0, 0, 0), std=(1, 1, 1))
+        T.Normalize(mean=(0.4267, 0.4158, 0.3837), std=(0.3113, 0.2909, 0.2779))
     ])
 
     img = transforms(img)

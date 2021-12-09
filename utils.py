@@ -175,7 +175,7 @@ def get_mean_and_std(data_loader):
         n_batches += 1
 
     mean = channels_sum / n_batches
-    std = (channels_sum / n_batches - mean) ** 0.5
+    std = (channels_sum_sq / n_batches - mean**2) ** 0.5
 
     return mean, std
 
