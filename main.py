@@ -199,13 +199,15 @@ def train(args):
     start_epoch = restore_point["epoch"]
 
     for epoch in range(start_epoch, args.epochs):
-        sampler.set_epoch(epoch)
+        data_loader.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
             args, epoch, student, teacher, teacher_without_ddp,
             dino_loss, optimizer, scaler, data_loader,
             lr_schedule, wd_schedule, momentum_schedule
         )
         save_dict = {
+            "epoch": epoch + 1,
+            "args": args,
             "student": student.state_dict(),
             "teacher": teacher.state_dict(),
             "optimizer": optimizer.state_dict(),
@@ -228,7 +230,7 @@ def train(args):
 
 def train_one_epoch(args, epoch, student, teacher, teacher_without_ddp, dino_loss, optimizer,
                     scaler, data_loader, lr_schedule, wd_schedule, momentum_schedule):
-    loop = tqdm(data_loader, desc="DINO")
+    loop = tqdm(data_loader, desc=f"Epoch {epoch}")
     for it, images in enumerate(loop):
         it = len(data_loader) * epoch + it
 
@@ -262,7 +264,7 @@ def train_one_epoch(args, epoch, student, teacher, teacher_without_ddp, dino_los
                 utils.clip_gradients(student, args.clip_grad)
             utils.cancel_gradients_last_layer(epoch, student, args.freeze_last_layer)
 
-            scaler.scale(optimizer).step()
+            scaler.step(optimizer)
             scaler.update()
 
         # EMA update for the teacher
@@ -276,7 +278,7 @@ def train_one_epoch(args, epoch, student, teacher, teacher_without_ddp, dino_los
 
         loop.set_postfix(loss=loss.item(), lr=lr, weight_decay=wd)
 
-        return {"loss": loss.item(), "lr": lr, "weight_decay": wd}
+    return {"loss": loss.item(), "lr": lr, "weight_decay": wd}
 
 
 def get_args_parser():
@@ -360,7 +362,7 @@ def get_args_parser():
     
     
     # Misc
-    parser.add_argument('--data_path', default='/storage/PCB/train/', type=str,
+    parser.add_argument('--data_path', default='/storage/PCB-Compressed/train/', type=str,
                         help='Please specify path to the ImageNet training data.')
     parser.add_argument('--ckpt_dir', default="./vis3x_checkpoints/", type=str,
                         help='Path to save logs and checkpoints.')

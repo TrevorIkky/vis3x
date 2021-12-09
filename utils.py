@@ -231,9 +231,9 @@ def clip_gradients(model, clip):
     norms = []
     for name, param in model.named_parameters():
         if param.grad is not None:
-            param_norm = param.norm(2)
+            param_norm = param.grad.data.norm(2)
             norms.append(param_norm)
-            clip_coef = clip / (param + 1e-6)
+            clip_coef = clip / (param_norm + 1e-6)
             if clip_coef < 1:
                 param.grad.mul_(clip)
     return norms
