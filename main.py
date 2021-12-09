@@ -9,9 +9,9 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms as T
 from torchvision.transforms import InterpolationMode
-from tqdm import tqdm
 
 import utils
 import vision_transformers as vit
@@ -198,12 +198,16 @@ def train(args):
     min_loss = math.inf
     start_epoch = restore_point["epoch"]
 
+    _, log_count = utils.get_last_log(args.summary_writer_dir)
+
+    writer = SummaryWriter(f"logs/train_{log_count + 1}")
+
     for epoch in range(start_epoch, args.epochs):
         data_loader.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
             args, epoch, student, teacher, teacher_without_ddp,
             dino_loss, optimizer, scaler, data_loader,
-            lr_schedule, wd_schedule, momentum_schedule
+            lr_schedule, wd_schedule, momentum_schedule, writer
         )
         save_dict = {
             "epoch": epoch + 1,
@@ -216,6 +220,9 @@ def train(args):
         if scaler is not None:
             save_dict["scaler"] = scaler.state_dict()
 
+        # Save checkpoint to resume from
+        utils.save_master(save_dict, os.path.join(args.ckpt_dir, f"checkpoint.pth"))
+
         step_loss = train_stats['loss']
 
         if args.save_best_only:
@@ -225,13 +232,15 @@ def train(args):
                 min_loss = step_loss
 
         if not args.save_best_only and args.ckpt_freq and epoch % args.ckpt_freq == 0:
-            utils.save_master(save_dict, os.path.join(args.ckpt_dir, f"checkpoint-{step_loss}-{epoch:04}.pth"))
+            print(f"Saving checkpoint to: checkpoint-L{step_loss}-E{epoch:04}.pth")
+            utils.save_master(save_dict, os.path.join(args.ckpt_dir, f"checkpoint-L{step_loss}-E{epoch:04}.pth"))
 
 
 def train_one_epoch(args, epoch, student, teacher, teacher_without_ddp, dino_loss, optimizer,
-                    scaler, data_loader, lr_schedule, wd_schedule, momentum_schedule):
-    loop = tqdm(data_loader, desc=f"Epoch {epoch}")
-    for it, images in enumerate(loop):
+                    scaler, data_loader, lr_schedule, wd_schedule, momentum_schedule, writer):
+    metric_logger = utils.MetricLogger(delimiter="  ")
+    header = 'Epoch: [{}/{}]'.format(epoch, args.epochs)
+    for it, images in enumerate(metric_logger.log_every(data_loader, 10, header)):
         it = len(data_loader) * epoch + it
 
         for idx, param_group in enumerate(optimizer.param_groups):
@@ -276,9 +285,19 @@ def train_one_epoch(args, epoch, student, teacher, teacher_without_ddp, dino_los
         lr = optimizer.param_groups[0]["lr"],
         wd = optimizer.param_groups[0]["weight_decay"]
 
-        loop.set_postfix(loss=loss.item(), lr=lr, weight_decay=wd)
+        # logging
+        torch.cuda.synchronize()
+        metric_logger.update(lr=lr)
+        metric_logger.update(wd=wd)
+        metric_logger.update(loss=loss.item())
 
-    return {"loss": loss.item(), "lr": lr, "weight_decay": wd}
+        writer.add_scalar("Loss", loss.item(), global_step=it)
+        writer.add_scalar("Learning Rate", lr, global_step=it)
+        writer.add_scalar("Weight Decay", wd, global_step=it)
+
+    metric_logger.synchronize_between_processes()
+    print("Averaged stats:", metric_logger)
+    return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
 def get_args_parser():
@@ -363,8 +382,11 @@ def get_args_parser():
     # Misc
     parser.add_argument('--data_path', default='/storage/PCB-Compressed/train/', type=str,
                         help='Please specify path to the ImageNet training data.')
-    parser.add_argument('--ckpt_dir', default="./vis3x_checkpoints/", type=str,
+    parser.add_argument('--ckpt_dir', default="./vis3x_checkpoints/checkpoint.pth", type=str,
                         help='Path to save logs and checkpoints.')
+    parser.add_argument('--summary_writer_dir', default="./logs/", type=str,
+                        help='Path to save logs and checkpoints.')
+
     parser.add_argument('--save_best_only', default=False, type=utils.bool_flag,
                         help="""Whether or not to save the best model when epochs are rolling""")
     parser.add_argument('--ckpt_freq', default=20, type=int, help='Save checkpoint every x epochs.')
