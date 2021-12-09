@@ -4,7 +4,6 @@ from functools import partial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.transforms import  InterpolationMode
 
 
 def drop_path(x, drop_prob: float, training: bool = False):

@@ -4,7 +4,6 @@ import os
 import random
 import sys
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage.io as io
@@ -60,7 +59,7 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
         _mask = mask[i]
         if blur:
             pass
-            #_mask = cv2.blur(_mask, (10, 10))
+            # _mask = cv2.blur(_mask, (10, 10))
         # Mask
         masked_image = apply_mask(masked_image, _mask, color, alpha)
         # Mask Polygon
@@ -125,12 +124,10 @@ def visualize(args):
     ])
 
     img = transforms(img)
-    
 
     # Make image divisible by patch size and select that portion in the img
     w, h = img.shape[1] - img.shape[1] % args.patch_size, img.shape[2] - img.shape[2] % args.patch_size
     img = img[:, :w, :h].unsqueeze(0)
-   
 
     # Width & Height of patch
     w_feature_map = w // args.patch_size
@@ -189,7 +186,8 @@ if __name__ == "__main__":
                         help="Path to pretrained weights to load.")
     parser.add_argument("--ckpt_key", default="teacher", type=str,
                         help='Key to use in the checkpoint (example: "teacher")')
-    parser.add_argument("--image_path", default="/notebooks/vis3x/pcb_test_49.jpeg", type=str, help="Path of the image to load.")
+    parser.add_argument("--image_path", default="/notebooks/vis3x/pcb_test_49.jpeg", type=str,
+                        help="Path of the image to load.")
     parser.add_argument("--image_size", default=(224, 224), type=int, nargs="+", help="Resize image.")
     parser.add_argument('--output_dir', default='./attention-maps', help='Path where to save visualizations.')
     parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
