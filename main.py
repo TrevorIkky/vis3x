@@ -8,11 +8,11 @@ import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
-from PIL import Image
 from torch.utils.data import DataLoader, DistributedSampler
 from torchvision import transforms as T
-from tqdm import tqdm
 from torchvision.transforms import InterpolationMode
+from tqdm import tqdm
+
 import utils
 import vision_transformers as vit
 from dataset import Vis3xDataset
@@ -359,8 +359,7 @@ def get_args_parser():
     parser.add_argument('--local_crops_scale', type=float, nargs='+', default=(0.05, 0.4),
                         help="""Scale range of the cropped image before resizing, relatively to the origin image.
         Used for small local view cropping of multi-crop.""")
-    
-    
+
     # Misc
     parser.add_argument('--data_path', default='/storage/PCB-Compressed/train/', type=str,
                         help='Please specify path to the ImageNet training data.')
@@ -370,7 +369,7 @@ def get_args_parser():
                         help="""Whether or not to save the best model when epochs are rolling""")
     parser.add_argument('--ckpt_freq', default=20, type=int, help='Save checkpoint every x epochs.')
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
-    parser.add_argument('--num_workers', default=8,type=int, help='Number of data loading workers per GPU.')
+    parser.add_argument('--num_workers', default=8, type=int, help='Number of data loading workers per GPU.')
     parser.add_argument("--dist_url", default="env://", type=str, help="""url used to set up
         distributed training; see https://pytorch.org/docs/stable/distributed.html""")
     parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")

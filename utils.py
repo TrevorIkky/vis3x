@@ -165,6 +165,21 @@ def create_ckpt_dir(path):
         os.makedirs(path, exist_ok=True)
 
 
+def get_mean_and_std(data_loader):
+    # var(x) = E(x**2) - E(x)**2
+    channels_sum, channels_sum_sq, n_batches = 0, 0, 0
+
+    for img in data_loader:
+        channels_sum += torch.mean(img, dim=[0, 2, 3])
+        channels_sum_sq += torch.mean(img ** 2, dim=[0, 2, 3])
+        n_batches += 1
+
+    mean = channels_sum / n_batches
+    std = (channels_sum / n_batches - mean) ** 0.5
+
+    return mean, std
+
+
 def has_batch_norm(model):
     batch_norms = (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d, nn.SyncBatchNorm)
     for name, module in model.named_modules():
