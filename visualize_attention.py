@@ -4,7 +4,7 @@ import os
 import random
 import sys
 
-import cv2
+
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage.io as io
@@ -59,7 +59,8 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
         color = colors[i]
         _mask = mask[i]
         if blur:
-            _mask = cv2.blur(_mask, (10, 10))
+            pass
+            #_mask = cv2.blur(_mask, (10, 10))
         # Mask
         masked_image = apply_mask(masked_image, _mask, color, alpha)
         # Mask Polygon
@@ -81,7 +82,7 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
 
 @torch.inference_mode()
 def visualize(args):
-    model = vit.__dict__[args.arch](args.patch_size, n_classes=args.n_classes)
+    model = vit.__dict__[args.arch](args.patch_size, n_classes=0)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = model.to(device)
 
@@ -98,9 +99,9 @@ def visualize(args):
 
     state_dict = torch.load(args.ckpt_file_path, map_location="cpu")
 
-    if args.ckpt_key is not None and args.chkpt_key in state_dict:
+    if args.ckpt_key is not None and args.ckpt_key in state_dict:
         print(f"Take key {args.ckpt_key} in provided checkpoint dict")
-        state_dict = state_dict[args.checkpoint_key]
+        state_dict = state_dict[args.ckpt_key]
 
     # remove `module.` and `backbone.` prefix added by MultiCropWrapper
     state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
@@ -118,7 +119,7 @@ def visualize(args):
 
     # Apply transform to image
     transforms = T.Compose([
-        T.Resize((args.image_size, args.image_size)),
+        T.Resize(args.image_size),
         T.ToTensor(),
         T.Normalize(mean=(0.4267, 0.4158, 0.3837), std=(0.3113, 0.2909, 0.2779))
     ])
@@ -127,7 +128,7 @@ def visualize(args):
 
     # Make image divisible by patch size and select that portion in the img
     w, h = img.shape[0] - img.shape[0] % args.patch_size, img.shape[1] - img.shape[1] % args.patch_size
-    img = img[:, :w, :h]
+    img = img[:, :w, :h].unsqueeze(0)
 
     # Width & Height of patch
     w_feature_map = w // args.patch_size
@@ -181,13 +182,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Vis3x visualize self-attention maps')
     parser.add_argument('--arch', default='vit_small', type=str,
                         choices=['vit_tiny', 'vit_small', 'vit_base'], help='Architecture (support only ViT atm).')
-    parser.add_argument('--patch_size', default=8, type=int, help='Patch resolution of the model.')
-    parser.add_argument('--ckpt_file_path', default='', type=str,
+    parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
+    parser.add_argument('--ckpt_file_path', default='/notebooks/vis3x/vis3x_checkpoints/checkpoint.pth', type=str,
                         help="Path to pretrained weights to load.")
     parser.add_argument("--ckpt_key", default="teacher", type=str,
                         help='Key to use in the checkpoint (example: "teacher")')
-    parser.add_argument("--image_path", default=None, type=str, help="Path of the image to load.")
-    parser.add_argument("--image_size", default=(480, 480), type=int, nargs="+", help="Resize image.")
+    parser.add_argument("--image_path", default="/notebooks/vis3x/pcb_test_49.jpeg", type=str, help="Path of the image to load.")
+    parser.add_argument("--image_size", default=(224, 224), type=int, nargs="+", help="Resize image.")
     parser.add_argument('--output_dir', default='.', help='Path where to save visualizations.')
     parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
            obtained by thresholding the self-attention maps to keep xx% of the mass.""")

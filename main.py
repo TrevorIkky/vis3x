@@ -186,7 +186,7 @@ def train(args):
 
     restore_point = {"epoch": 0}
     utils.restart_from_ckpt(
-        ckpt_path=os.path.join(args.ckpt_dir),
+        ckpt_path=os.path.join(args.ckpt_dir, "checkpoint.pth"),
         restore_point=restore_point,
         student=student, teacher=teacher,
         optimizer=optimizer, scaler=scaler, loss=dino_loss
@@ -199,6 +199,8 @@ def train(args):
     start_epoch = restore_point["epoch"]
 
     _, log_count = utils.get_last_log(args.summary_writer_dir)
+    
+    print(f"Summary writer writing to: logs/train_{log_count + 1}")
 
     writer = SummaryWriter(f"logs/train_{log_count + 1}")
 
@@ -282,7 +284,7 @@ def train_one_epoch(args, epoch, student, teacher, teacher_without_ddp, dino_los
             for param_q, param_k in zip(student.module.parameters(), teacher_without_ddp.parameters()):
                 param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
 
-        lr = optimizer.param_groups[0]["lr"],
+        lr = optimizer.param_groups[0]["lr"]
         wd = optimizer.param_groups[0]["weight_decay"]
 
         # logging
@@ -351,7 +353,7 @@ def get_args_parser():
         help optimization for larger ViT architectures. 0 for disabling.""")
     parser.add_argument('--batch_size_per_gpu', default=64, type=int,
                         help='Per-GPU batch-size : number of distinct images loaded on one GPU.')
-    parser.add_argument('--epochs', default=100, type=int, help='Number of epochs of training.')
+    parser.add_argument('--epochs', default=400, type=int, help='Number of epochs of training.')
     parser.add_argument('--freeze_last_layer', default=1, type=int, help="""Number of epochs
         during which we keep the output layer fixed. Typically doing so during
         the first epoch helps training. Try increasing this value if the loss does not decrease.""")
@@ -382,7 +384,7 @@ def get_args_parser():
     # Misc
     parser.add_argument('--data_path', default='/storage/PCB-Compressed/train/', type=str,
                         help='Please specify path to the ImageNet training data.')
-    parser.add_argument('--ckpt_dir', default="./vis3x_checkpoints/checkpoint.pth", type=str,
+    parser.add_argument('--ckpt_dir', default="./vis3x_checkpoints/", type=str,
                         help='Path to save logs and checkpoints.')
     parser.add_argument('--summary_writer_dir', default="./logs/", type=str,
                         help='Path to save logs and checkpoints.')

@@ -336,6 +336,9 @@ def get_mean_and_std(data_loader):
 
 
 def get_last_log(log_dir="logs/"):
+    if not os.path.exists(log_dir):
+        return f"train_0", 0
+    
     log_dirs = os.listdir(log_dir)
 
     if len(log_dirs) == 0:
@@ -378,11 +381,11 @@ def restart_from_ckpt(ckpt_path=None, restore_point=None, **kwargs):
     for key, val in kwargs.items():
         if key in checkpoint and val is not None:
             try:
-                message = val.load_state_dict(checkpoint['key'], strict=False)
+                message = val.load_state_dict(checkpoint[key], strict=False)
                 print(f"==> Loaded {key} from ckpt {ckpt_path} with {message}")
             except TypeError:
                 try:
-                    message = val.load_state_dict(checkpoint['key'])
+                    message = val.load_state_dict(checkpoint[key])
                     print(f"==> Loaded {key} from ckpt {ckpt_path} with {message}")
                 except ValueError:
                     print(f"==> Unable to load {key} from ckpt {ckpt_path}")

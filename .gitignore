@@ -1,3 +1,5 @@
 __pycache__/
+logs
+*.jpeg
 .ipynb_checkpoints
 vis3x_checkpoints
