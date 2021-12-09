@@ -125,10 +125,12 @@ def visualize(args):
     ])
 
     img = transforms(img)
+    
 
     # Make image divisible by patch size and select that portion in the img
-    w, h = img.shape[0] - img.shape[0] % args.patch_size, img.shape[1] - img.shape[1] % args.patch_size
+    w, h = img.shape[1] - img.shape[1] % args.patch_size, img.shape[2] - img.shape[2] % args.patch_size
     img = img[:, :w, :h].unsqueeze(0)
+   
 
     # Width & Height of patch
     w_feature_map = w // args.patch_size
@@ -161,13 +163,13 @@ def visualize(args):
     attentions = F.interpolate(attentions.unsqueeze(0), scale_factor=args.patch_size, mode="nearest")
     attentions = attentions[0].cpu().numpy()
 
-    os.makedirs(args.output_path, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
 
     torchvision.utils.save_image(torchvision.utils.make_grid(img, normalize=True, scale_each=True),
-                                 os.path.join(args.output_path, "image.png"))
+                                 os.path.join(args.output_dir, "image.png"))
 
     for h in range(num_heads):
-        img_path = os.path.join(args.output_path, f"attn_head_{h}.png")
+        img_path = os.path.join(args.output_dir, f"attn_head_{h}.png")
         plt.imsave(img_path, attentions[h], format="png")
         print(f"Attention image saved to: {img_path}")
 
@@ -189,7 +191,7 @@ if __name__ == "__main__":
                         help='Key to use in the checkpoint (example: "teacher")')
     parser.add_argument("--image_path", default="/notebooks/vis3x/pcb_test_49.jpeg", type=str, help="Path of the image to load.")
     parser.add_argument("--image_size", default=(224, 224), type=int, nargs="+", help="Resize image.")
-    parser.add_argument('--output_dir', default='.', help='Path where to save visualizations.')
+    parser.add_argument('--output_dir', default='./attention-maps', help='Path where to save visualizations.')
     parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
            obtained by thresholding the self-attention maps to keep xx% of the mass.""")
     args = parser.parse_args()
