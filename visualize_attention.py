@@ -1,4 +1,5 @@
 import argparse
+import cv2
 import colorsys
 import os
 import random
@@ -58,8 +59,7 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
         color = colors[i]
         _mask = mask[i]
         if blur:
-            pass
-            # _mask = cv2.blur(_mask, (10, 10))
+            _mask = cv2.blur(_mask, (10, 10))
         # Mask
         masked_image = apply_mask(masked_image, _mask, color, alpha)
         # Mask Polygon
@@ -120,7 +120,7 @@ def visualize(args):
     transforms = T.Compose([
         T.Resize(args.image_size),
         T.ToTensor(),
-        T.Normalize(mean=(0.4267, 0.4158, 0.3837), std=(0.3113, 0.2909, 0.2779))
+        T.Normalize(mean=(0.2729, 0.3891, 0.2590), std=(0.3087, 0.2354, 0.2736))
     ])
 
     img = transforms(img)
@@ -181,14 +181,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Vis3x visualize self-attention maps')
     parser.add_argument('--arch', default='vit_small', type=str,
                         choices=['vit_tiny', 'vit_small', 'vit_base'], help='Architecture (support only ViT atm).')
-    parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
+    parser.add_argument('--patch_size', default=8, type=int, help='Patch resolution of the model.')
     parser.add_argument('--ckpt_file_path', default='/notebooks/vis3x/vis3x_checkpoints/checkpoint.pth', type=str,
                         help="Path to pretrained weights to load.")
     parser.add_argument("--ckpt_key", default="teacher", type=str,
                         help='Key to use in the checkpoint (example: "teacher")')
-    parser.add_argument("--image_path", default="/notebooks/vis3x/pcb_test_49.jpeg", type=str,
+    parser.add_argument("--image_path", default="/notebooks/vis3x/test_images/pcb_2852.jpeg", type=str,
                         help="Path of the image to load.")
-    parser.add_argument("--image_size", default=(224, 224), type=int, nargs="+", help="Resize image.")
+    parser.add_argument("--image_size", default=(480, 480), type=int, nargs="+", help="Resize image.")
     parser.add_argument('--output_dir', default='./attention-maps', help='Path where to save visualizations.')
     parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
            obtained by thresholding the self-attention maps to keep xx% of the mass.""")

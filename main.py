@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, DistributedSampler
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms as T
+import torchvision
 from torchvision.transforms import InterpolationMode
 
 import utils
@@ -28,7 +29,7 @@ class DataAugmentationsDINO(object):
         ])
         normalize = T.Compose([
             T.ToTensor(),
-            T.Normalize(mean=(0.4267, 0.4158, 0.3837), std=(0.3113, 0.2909, 0.2779))
+            T.Normalize(mean=(0.2729, 0.3891, 0.2590), std=(0.3087, 0.2354, 0.2736))
         ])
 
         self.global_transform1 = T.Compose([
@@ -42,7 +43,7 @@ class DataAugmentationsDINO(object):
             T.RandomResizedCrop(224, global_image_scale, interpolation=InterpolationMode.BICUBIC),
             flip_and_color_jitter,
             utils.GaussianBlur(p=0.1),
-            utils.Solarize(p=0.2),
+            utils.Solarize(p=0.4),
             normalize
         ])
 
@@ -284,18 +285,16 @@ def train_one_epoch(args, epoch, student, teacher, teacher_without_ddp, dino_los
             for param_q, param_k in zip(student.module.parameters(), teacher_without_ddp.parameters()):
                 param_k.data.mul_(m).add_((1 - m) * param_q.detach().data)
 
-        lr = optimizer.param_groups[0]["lr"]
-        wd = optimizer.param_groups[0]["weight_decay"]
 
         # logging
         torch.cuda.synchronize()
-        metric_logger.update(lr=lr)
-        metric_logger.update(wd=wd)
+        metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+        metric_logger.update(wd=optimizer.param_groups[0]["weight_decay"])
         metric_logger.update(loss=loss.item())
 
         writer.add_scalar("Loss", loss.item(), global_step=it)
-        writer.add_scalar("Learning Rate", lr, global_step=it)
-        writer.add_scalar("Weight Decay", wd, global_step=it)
+        writer.add_scalar("Learning Rate", optimizer.param_groups[0]["lr"], global_step=it)
+        writer.add_scalar("Weight Decay", optimizer.param_groups[0]["weight_decay"], global_step=it)
 
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
@@ -311,18 +310,18 @@ def get_args_parser():
                         choices=['vit_tiny', 'vit_small', 'vit_base'],
                         help="""Name of architecture to train. For quick experiments with ViTs,
                         we recommend using vit_tiny or vit_small.""")
-    parser.add_argument('--patch_size', default=16, type=int, help="""Size in pixels
+    parser.add_argument('--patch_size', default=8, type=int, help="""Size in pixels
         of input square patches - default 16 (for 16x16 patches). Using smaller
         values leads to better performance but requires more memory. Applies only
         for ViTs (vit_tiny, vit_small and vit_base). If <16, we recommend disabling
         mixed precision training (--use_fp16 false) to avoid unstabilities.""")
-    parser.add_argument('--out_dim', default=1024, type=int, help="""Dimensionality of
+    parser.add_argument('--out_dim', default=512, type=int, help="""Dimensionality of
         the DINO head output. For complex and large datasets large values (like 65k) work well.""")
-    parser.add_argument('--norm_last_layer', default=True, type=utils.bool_flag,
+    parser.add_argument('--norm_last_layer', default=False, type=utils.bool_flag,
                         help="""Whether or not to weight normalize the last layer of the DINO head.
         Not normalizing leads to better performance but can make the training unstable.
         In our experiments, we typically set this paramater to False with vit_small and True with vit_base.""")
-    parser.add_argument('--momentum_teacher', default=0.996, type=float, help="""Base EMA
+    parser.add_argument('--momentum_teacher', default=0.99995, type=float, help="""Base EMA
         parameter for teacher update. The value is increased to 1 during training with cosine schedule.
         We recommend setting a higher value with small batches: for example use 0.9995 with batch size of 256.""")
     parser.add_argument('--use_bn_in_head', default=False, type=utils.bool_flag,
@@ -351,7 +350,7 @@ def get_args_parser():
     parser.add_argument('--clip_grad', type=float, default=3.0, help="""Maximal parameter
         gradient norm if using gradient clipping. Clipping with norm .3 ~ 1.0 can
         help optimization for larger ViT architectures. 0 for disabling.""")
-    parser.add_argument('--batch_size_per_gpu', default=64, type=int,
+    parser.add_argument('--batch_size_per_gpu', default=8, type=int,
                         help='Per-GPU batch-size : number of distinct images loaded on one GPU.')
     parser.add_argument('--epochs', default=400, type=int, help='Number of epochs of training.')
     parser.add_argument('--freeze_last_layer', default=1, type=int, help="""Number of epochs
@@ -360,7 +359,7 @@ def get_args_parser():
     parser.add_argument("--lr", default=0.0005, type=float, help="""Learning rate at the end of
         linear warmup (highest LR used during training). The learning rate is linearly scaled
         with the batch size, and specified here for a reference batch size of 256.""")
-    parser.add_argument("--lr_warmup_epochs", default=10, type=int,
+    parser.add_argument("--lr_warmup_epochs", default=45, type=int,
                         help="Number of epochs for the linear learning-rate warm up.")
     parser.add_argument('--min_lr', type=float, default=1e-6, help="""Target LR at the
         end of optimization. We use a cosine LR schedule with linear warmup.""")
@@ -382,7 +381,7 @@ def get_args_parser():
         Used for small local view cropping of multi-crop.""")
 
     # Misc
-    parser.add_argument('--data_path', default='/storage/PCB-Compressed/train/', type=str,
+    parser.add_argument('--data_path', default='/storage/PCB-Compressed-L/train/', type=str,
                         help='Please specify path to the ImageNet training data.')
     parser.add_argument('--ckpt_dir', default="./vis3x_checkpoints/", type=str,
                         help='Path to save logs and checkpoints.')
@@ -391,7 +390,7 @@ def get_args_parser():
 
     parser.add_argument('--save_best_only', default=False, type=utils.bool_flag,
                         help="""Whether or not to save the best model when epochs are rolling""")
-    parser.add_argument('--ckpt_freq', default=20, type=int, help='Save checkpoint every x epochs.')
+    parser.add_argument('--ckpt_freq', default=10, type=int, help='Save checkpoint every x epochs.')
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
     parser.add_argument('--num_workers', default=8, type=int, help='Number of data loading workers per GPU.')
     parser.add_argument("--dist_url", default="env://", type=str, help="""url used to set up

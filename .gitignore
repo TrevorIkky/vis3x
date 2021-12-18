@@ -3,5 +3,6 @@ logs
 *.jpeg
 *.png
 attention_maps
+test_images
 .ipynb_checkpoints
 vis3x_checkpoints

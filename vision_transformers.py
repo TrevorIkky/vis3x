@@ -102,7 +102,7 @@ class Block(nn.Module):
 
         x = x + self.drop_path(y)
         x = x + self.drop_path(self.mlp(self.norm_layer2(x)))
-
+        
         return x, attns
 
 
