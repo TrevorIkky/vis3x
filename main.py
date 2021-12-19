@@ -43,7 +43,7 @@ class DataAugmentationsDINO(object):
             T.RandomResizedCrop(224, global_image_scale, interpolation=InterpolationMode.BICUBIC),
             flip_and_color_jitter,
             utils.GaussianBlur(p=0.1),
-            utils.Solarize(p=0.4),
+            utils.Solarize(p=0.2),
             normalize
         ])
 
@@ -110,6 +110,8 @@ def train(args):
 
     augmentations = DataAugmentationsDINO(
         args.global_crops_scale, args.local_crops_scale, args.num_local_crops)
+    
+    print(f'NOTE: Remember to set mean, std of dataset in Normalize. Use utils.get_mean_and_std')
 
     dataset = Vis3xDataset(args.data_path, augmentations)
 
@@ -151,6 +153,8 @@ def train(args):
     teacher_without_ddp.load_state_dict(student.module.state_dict())
     for param in teacher.parameters():
         param.requires_grad = False
+    
+    print(f'# Parameters: {sum(p.numel() for p in student.module.parameters() if p.requires_grad)}')
 
     # DINO Loss and send to GPU
     dino_loss = DinoLoss(args.out_dim, args.num_local_crops + 2,
@@ -306,7 +310,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser('Vis3x', add_help=False)
 
     # Model parameters
-    parser.add_argument('--arch', default='vit_small', type=str,
+    parser.add_argument('--arch', default='vit_tiny', type=str,
                         choices=['vit_tiny', 'vit_small', 'vit_base'],
                         help="""Name of architecture to train. For quick experiments with ViTs,
                         we recommend using vit_tiny or vit_small.""")
@@ -321,7 +325,7 @@ def get_args_parser():
                         help="""Whether or not to weight normalize the last layer of the DINO head.
         Not normalizing leads to better performance but can make the training unstable.
         In our experiments, we typically set this paramater to False with vit_small and True with vit_base.""")
-    parser.add_argument('--momentum_teacher', default=0.99995, type=float, help="""Base EMA
+    parser.add_argument('--momentum_teacher', default=0.9995, type=float, help="""Base EMA
         parameter for teacher update. The value is increased to 1 during training with cosine schedule.
         We recommend setting a higher value with small batches: for example use 0.9995 with batch size of 256.""")
     parser.add_argument('--use_bn_in_head', default=False, type=utils.bool_flag,
@@ -350,16 +354,16 @@ def get_args_parser():
     parser.add_argument('--clip_grad', type=float, default=3.0, help="""Maximal parameter
         gradient norm if using gradient clipping. Clipping with norm .3 ~ 1.0 can
         help optimization for larger ViT architectures. 0 for disabling.""")
-    parser.add_argument('--batch_size_per_gpu', default=8, type=int,
+    parser.add_argument('--batch_size_per_gpu', default=16, type=int,
                         help='Per-GPU batch-size : number of distinct images loaded on one GPU.')
-    parser.add_argument('--epochs', default=400, type=int, help='Number of epochs of training.')
-    parser.add_argument('--freeze_last_layer', default=1, type=int, help="""Number of epochs
+    parser.add_argument('--epochs', default=150, type=int, help='Number of epochs of training.')
+    parser.add_argument('--freeze_last_layer', default=2, type=int, help="""Number of epochs
         during which we keep the output layer fixed. Typically doing so during
         the first epoch helps training. Try increasing this value if the loss does not decrease.""")
     parser.add_argument("--lr", default=0.0005, type=float, help="""Learning rate at the end of
         linear warmup (highest LR used during training). The learning rate is linearly scaled
         with the batch size, and specified here for a reference batch size of 256.""")
-    parser.add_argument("--lr_warmup_epochs", default=45, type=int,
+    parser.add_argument("--lr_warmup_epochs", default=15, type=int,
                         help="Number of epochs for the linear learning-rate warm up.")
     parser.add_argument('--min_lr', type=float, default=1e-6, help="""Target LR at the
         end of optimization. We use a cosine LR schedule with linear warmup.""")
@@ -390,7 +394,7 @@ def get_args_parser():
 
     parser.add_argument('--save_best_only', default=False, type=utils.bool_flag,
                         help="""Whether or not to save the best model when epochs are rolling""")
-    parser.add_argument('--ckpt_freq', default=10, type=int, help='Save checkpoint every x epochs.')
+    parser.add_argument('--ckpt_freq', default=5, type=int, help='Save checkpoint every x epochs.')
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
     parser.add_argument('--num_workers', default=8, type=int, help='Number of data loading workers per GPU.')
     parser.add_argument("--dist_url", default="env://", type=str, help="""url used to set up

@@ -38,19 +38,8 @@ class Solarize(object):
         solarize = random.random() < self.p
         if not solarize:
             return img
-        return ImageOps.invert(img)
+        return ImageOps.solarize(img, 1)
     
-
-class Posterize(object):
-    def __init__(self, p):
-        self.p = p
-
-    def __call__(self, img):
-        solarize = random.random() < self.p
-        if not solarize:
-            return img
-        return ImageOps.posterize(img, 2)
-
 
 class MultiCropWrapper(nn.Module):
     def __init__(self, backbone, head):
