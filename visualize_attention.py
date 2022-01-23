@@ -134,9 +134,10 @@ def visualize(args):
     h_feature_map = h // args.patch_size
 
     attentions = model.get_last_self_attn(img.to(device))  # b, heads, output, num_patches + 1
+    print(attentions.shape)
 
     num_heads = attentions.shape[1]
-    attentions = attentions[0, :, 0, 1:].reshape(num_heads, -1)  # heads, num_patches
+    attentions = attentions[0, :, 5, 1:].reshape(num_heads, -1)  # heads, num_patches
 
     if args.threshold is not None:
         # we keep only a certain percentage of the mass
@@ -182,15 +183,15 @@ if __name__ == "__main__":
     parser.add_argument('--arch', default='vit_small', type=str,
                         choices=['vit_tiny', 'vit_small', 'vit_base'], help='Architecture (support only ViT atm).')
     parser.add_argument('--patch_size', default=8, type=int, help='Patch resolution of the model.')
-    parser.add_argument('--ckpt_file_path', default='/notebooks/vis3x/vis3x_checkpoints/checkpoint-L0.8009090174149571-E0160.pth', type=str,
+    parser.add_argument('--ckpt_file_path', default='/notebooks/vis3x/vis3x_checkpoints/p8 -checkpoint-L0.8009090174149571-E0160.pth', type=str,
                         help="Path to pretrained weights to load.")
     parser.add_argument("--ckpt_key", default="teacher", type=str,
                         help='Key to use in the checkpoint (example: "teacher")')
-    parser.add_argument("--image_path", default="/notebooks/vis3x/test_images/pcb_2852.jpeg", type=str,
+    parser.add_argument("--image_path", default="/notebooks/vis3x/test_images/pcb_test_49.jpeg", type=str,
                         help="Path of the image to load.")
     parser.add_argument("--image_size", default=(720, 720), type=int, nargs="+", help="Resize image.")
     parser.add_argument('--output_dir', default='./attention-maps', help='Path where to save visualizations.')
-    parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
+    parser.add_argument("--threshold", type=float, default=0.6, help="""We visualize masks
            obtained by thresholding the self-attention maps to keep xx% of the mass.""")
     args = parser.parse_args()
 
