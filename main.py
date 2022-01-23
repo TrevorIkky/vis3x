@@ -15,7 +15,7 @@ import torchvision
 from torchvision.transforms import InterpolationMode
 
 import utils
-import vision_transformers as vit
+import swin_transformer as vit
 from dataset import Vis3xDataset
 from vision_transformers import DINOHead
 
@@ -310,8 +310,8 @@ def get_args_parser():
     parser = argparse.ArgumentParser('Vis3x', add_help=False)
 
     # Model parameters
-    parser.add_argument('--arch', default='vit_tiny', type=str,
-                        choices=['vit_tiny', 'vit_small', 'vit_base'],
+    parser.add_argument('--arch', default='swin_small', type=str,
+                        choices=['swin_tiny', 'swin_small', 'swin_base', 'swin_large'],
                         help="""Name of architecture to train. For quick experiments with ViTs,
                         we recommend using vit_tiny or vit_small.""")
     parser.add_argument('--patch_size', default=16, type=int, help="""Size in pixels

@@ -137,7 +137,17 @@ def visualize(args):
     print(attentions.shape)
 
     num_heads = attentions.shape[1]
-    attentions = attentions[0, :, 5, 1:].reshape(num_heads, -1)  # heads, num_patches
+
+    window_size = 7
+    B = int(attentions.shape[0] / (w_feature_map * h_feature_map / window_size / window_size))
+
+    attentions = attentions[:, :, 5, :]  # B, nh, 1, h
+
+    #B, nW, nH, ws, ws
+    attentions = attentions.view(B, num_heads, w_feature_map // window_size, h_feature_map // window_size, window_size, window_size)
+    attentions = attentions.view(B, num_heads, w_feature_map, h_feature_map)
+
+    attentions = attentions.reshape(num_heads, -1)  # heads, num_patches
 
     if args.threshold is not None:
         # we keep only a certain percentage of the mass
