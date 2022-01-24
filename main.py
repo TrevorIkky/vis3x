@@ -310,7 +310,7 @@ def get_args_parser():
     parser = argparse.ArgumentParser('Vis3x', add_help=False)
 
     # Model parameters
-    parser.add_argument('--arch', default='swin_small', type=str,
+    parser.add_argument('--arch', default='swin_tiny', type=str,
                         choices=['swin_tiny', 'swin_small', 'swin_base', 'swin_large'],
                         help="""Name of architecture to train. For quick experiments with ViTs,
                         we recommend using vit_tiny or vit_small.""")
